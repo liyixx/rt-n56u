@@ -3,14 +3,56 @@
 if [ -z "$1" ] || [ "$EUID" != 0 ]; then
 	echo "Please run 'fakeroot $0 PRODUCT_NAME' to start build (see 'configs/templates/') " && exit 1
 fi
-
+if [ -z "$2" ];then
 if [ ! -f configs/templates/$1.config ] ; then
 	echo "configs/templates/$1.config not found "
 	exit 1
 fi
 
 cp -f configs/templates/$1.config .config
+sed -i 's/CONFIG_FIRMWARE_INCLUDE_DNSFORWARDER=y/CONFIG_FIRMWARE_INCLUDE_DNSFORWARDER=n/g' .config
+sed -i 's/CONFIG_FIRMWARE_INCLUDE_MENTOHUST=y/CONFIG_FIRMWARE_INCLUDE_MENTOHUST=n/g' .config
+sed -i 's/CONFIG_FIRMWARE_INCLUDE_SCUTCLIENT=y/CONFIG_FIRMWARE_INCLUDE_SCUTCLIENT=n/g' .config
+sed -i 's/CONFIG_FIRMWARE_INCLUDE_SRELAY=y/CONFIG_FIRMWARE_INCLUDE_SRELAY=n/g' .config
+sed -i 's/CONFIG_FIRMWARE_INCLUDE_SHADOWSOCKS=y/CONFIG_FIRMWARE_INCLUDE_SHADOWSOCKS=n/g' .config
 
+##以下为插件增减选项,y为集成,n为不集成,请根据自己路由的FLASH大小选择,切勿超大小,不然固件刷入后会无法启动
+##此插件选项只在本地编译的时候才会生效
+##科学上网##
+echo "CONFIG_FIRMWARE_INCLUDE_SHADOWSOCKS=y" >> .config #科学上网插件，选择n后全部有关插件都不集成
+echo "CONFIG_FIRMWARE_INCLUDE_V2RAY=n" >> .config #集成v2ray执行文件，如果不集成，会从网上下载下来执行，不影响正常使用
+echo "CONFIG_FIRMWARE_INCLUDE_TROJAN=n" >> .config #集成trojan执行文件，如果不集成，会从网上下载下来执行，不影响正常使用
+echo "CONFIG_FIRMWARE_INCLUDE_SSOBFS=n" >> .config #simple-obfs混淆插件
+##科学上网##
+
+##广告管理##
+echo "CONFIG_FIRMWARE_INCLUDE_ADBYBY=y" >> .config #adbyby plus+
+echo "CONFIG_FIRMWARE_INCLUDE_KOOLPROXY=n" >> .config #KP广告过滤
+##广告管理##
+
+##DNS服务##
+echo "CONFIG_FIRMWARE_INCLUDE_SMARTDNS=y" >> .config #smartdns
+echo "CONFIG_FIRMWARE_INCLUDE_ADGUARDHOME=n" >> .config #adg DNS去AD
+
+##DNS服务##
+
+##文件管理##
+echo "CONFIG_FIRMWARE_INCLUDE_CADDY=y" >> .config #在线文件管理服务
+echo "CONFIG_FIRMWARE_INCLUDE_CADDYBIN=n" >> .config #集成caddu执行文件，此文件有13M,请注意固件大小。如果不集成，会从网上下载下来执行，不影响正常使用
+##文件管理##
+
+##音乐解锁##
+echo "CONFIG_FIRMWARE_INCLUDE_WYY=n" >> .config #网易云解锁
+echo "CONFIG_FIRMWARE_INCLUDE_WYYBIN=n" >> .config #网易云解锁GO版本执行文件（2M多）注意固件超大小
+##音乐解锁##
+
+##内网穿透服务##
+echo "CONFIG_FIRMWARE_INCLUDE_ZEROTIER=y" >> .config #zerotier ~1.3M
+echo "CONFIG_FIRMWARE_INCLUDE_ALIDDNS=n" >> .config #aliddns
+##内网穿透服务##
+
+fi
+sed -i 's/CONFIG_FIRMWARE_INCLUDE_OPENSSL_EXE=n/CONFIG_FIRMWARE_INCLUDE_OPENSSL_EXE=y/g' .config
 ROOTDIR=`pwd`
 export ROOTDIR=$ROOTDIR
 
@@ -207,6 +249,9 @@ if [ -n "$CONFIG_MT76X2_AP" ] ; then
 fi
 if [ -n "$CONFIG_MT76X3_AP" ] ; then
 	dir_wifi_ver="4.1.X.X"
+	if [ "$CONFIG_FIRMWARE_WIFI2_DRIVER" = "4.1.0.0" ]; then
+		dir_wifi_ver="4.1.0.0"
+	fi
 	cp -rfL "$dir_wifi_src/rtpci/$dir_wifi_ver/mt76x3" "$dir_wifi_dst/"
 	cp -rfL "$dir_wifi_src/rtpci/$dir_wifi_ver/mt76x3_ap" "$dir_wifi_dst/"
 fi
@@ -217,13 +262,10 @@ if [ -n "$CONFIG_MT7628_AP" ] ; then
 fi
 if [ -n "$CONFIG_MT7615_AP" ] ; then
 	dir_wifi_ver="4.4.2.1"
-	if [ "$CONFIG_FIRMWARE_WIFI_DRIVER" = "5.0.3.0" ] || \
-		[ "$CONFIG_FIRMWARE_WIFI2_DRIVER" = "5.0.3.0" ] || \
-		[ "$CONFIG_FIRMWARE_WIFI5_DRIVER" = "5.0.3.0" ]; then
+	if [ "$CONFIG_FIRMWARE_WIFI_DRIVER" = "5.0.3.0" ] || [ "$CONFIG_FIRMWARE_WIFI2_DRIVER" = "5.0.3.0" ] || [ "$CONFIG_FIRMWARE_WIFI5_DRIVER" = "5.0.3.0" ]; then
 		dir_wifi_ver="5.0.3.0"
-	elif [ "$CONFIG_FIRMWARE_WIFI_DRIVER" = "5.0.4.0" ] || \
-		[ "$CONFIG_FIRMWARE_WIFI2_DRIVER" = "5.0.4.0" ] || \
-		[ "$CONFIG_FIRMWARE_WIFI5_DRIVER" = "5.0.4.0" ]; then
+	fi
+	if [ "$CONFIG_FIRMWARE_WIFI_DRIVER" = "5.0.4.0" ] || [ "$CONFIG_FIRMWARE_WIFI2_DRIVER" = "5.0.4.0" ] || [ "$CONFIG_FIRMWARE_WIFI5_DRIVER" = "5.0.4.0" ]; then
 		dir_wifi_ver="5.0.4.0"
 	fi
 	cp -rfL "$dir_wifi_src/rtpci/$dir_wifi_ver/mt7615" "$dir_wifi_dst/"
@@ -295,8 +337,6 @@ fi
 #SFE
 if [ "$CONFIG_FIRMWARE_INCLUDE_SFE" = "y" ] ; then
 	func_enable_kernel_param "CONFIG_SHORTCUT_FE"
-	func_enable_kernel_param "CONFIG_NF_CONNTRACK_EVENTS"
-	func_enable_kernel_param "CONFIG_NF_CONNTRACK_CHAIN_EVENTS"
 else
 	func_disable_kernel_param "CONFIG_SHORTCUT_FE"
 fi
